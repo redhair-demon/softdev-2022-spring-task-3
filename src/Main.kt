@@ -12,12 +12,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
-import kotlin.concurrent.timer
-import kotlin.math.round
-import kotlin.math.roundToLong
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -48,17 +45,14 @@ fun main() = application {
     }
 
     if (isOpen) {
+
         Window(
             onCloseRequest = { isAskingForClose = true },
             title = "Compose for Desktop",
-            state = rememberWindowState(width = (25.5 * gridHeight).dp, height = (25 * gridWidth + 80).dp),
+            state = rememberWindowState(width = (26 * gridHeight).dp, height = (25 * gridWidth + 80).dp),
             resizable = false
         ) {
-            val seconds = remember{ mutableStateOf(0) }
-            var timer = timer(initialDelay = 1000L, period = 100L) {
-                seconds.value++
-                if (grid.isGameOver()) this.cancel()
-            }
+
             MaterialTheme {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -67,7 +61,11 @@ fun main() = application {
                             color = Color.LightGray,
                             border = ButtonDefaults.outlinedBorder,
                             shape = RectangleShape
-                        ) { Text("${grid.minesLeft()}     :    ${seconds.value/10.0}s", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold) }
+                        ) { Text(
+                            "${grid.minesLeft()}",
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold)
+                        }
                     }
                     LazyColumn() {
                         items(grid.width) { x ->
@@ -94,7 +92,7 @@ fun main() = application {
                                         modifier = Modifier.size(25.dp).mouseClickable(onClick = {
                                             when {
                                                 buttons.isPrimaryPressed -> grid = grid.action(x, y)
-                                                buttons.isSecondaryPressed -> grid = grid.actionRMB(x, y)
+                                                buttons.isSecondaryPressed -> grid = grid.actionSecondary(x, y)
                                             }
                                         }),
                                         color = if (isVisible) Color.White else Color.DarkGray,
@@ -147,6 +145,34 @@ fun main() = application {
                         isOpen = false
                         isChoosing = true
                     })
+                }
+            }
+        }
+        if (grid.isGameOver()) {
+            Dialog(
+                onCloseRequest = { isOpen = false },
+                title = "Game Over",
+                state = rememberDialogState(size = DpSize(300.dp, 150.dp)),
+                resizable = false
+            ) {
+                MaterialTheme {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            text = if (grid.isWin()) "Winner!" else "Loser!"
+                        )
+                        Text(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            text = "$gridWidth X $gridHeight - ${grid.minesLeft()} mines left"
+                        )
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                isOpen = false
+                                isChoosing = true
+                            }
+                        ) { Text("Restart") }
+                    }
                 }
             }
         }

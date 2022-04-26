@@ -22,7 +22,7 @@ class Grid(val width: Int, val height: Int, private val mines: Set<Cell>,
         return this
     }
 
-    fun actionRMB(x: Int, y: Int): Grid {
+    fun actionSecondary(x: Int, y: Int): Grid {
         if (field[x][y] != CellState.VISIBLE) {
             val localField = field.map { it.toMutableList() }
             localField[x][y] = localField[x][y].action()
