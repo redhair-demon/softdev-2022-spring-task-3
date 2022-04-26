@@ -68,9 +68,9 @@ fun main() = application {
                         }
                     }
                     LazyColumn() {
-                        items(grid.width) { x ->
+                        items(gridWidth) { x ->
                             LazyRow {
-                                items(grid.height) { y ->
+                                items(gridHeight) { y ->
                                     val cellState = grid.field[x][y]
                                     val numberColors = listOf(
                                         Color.White,
@@ -163,7 +163,7 @@ fun main() = application {
                         )
                         Text(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = "$gridWidth X $gridHeight - ${grid.minesLeft()} mines left"
+                            text = "$gridWidth X $gridHeight - ${grid.minesLeft()}/$mines mines left"
                         )
                         Button(
                             modifier = Modifier.fillMaxWidth(),

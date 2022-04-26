@@ -47,7 +47,11 @@ class Grid(val width: Int, val height: Int, private val mines: Set<Cell>,
 }
 
 fun generateMines(number: Int, width: Int, height: Int): Set<Cell> {
-    val result = emptySet<Cell>().toMutableSet()
-    for (i in 0..number) result += Cell(Random.nextInt(width), Random.nextInt(height))
+    val result = mutableSetOf<Cell>()
+    for (i in 0 until number) {
+        var cell = Cell(Random.nextInt(width), Random.nextInt(height))
+        while (cell in result) cell = Cell(Random.nextInt(width), Random.nextInt(height))
+        result += cell
+    }
     return result
 }
