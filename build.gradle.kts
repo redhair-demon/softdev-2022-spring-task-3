@@ -24,8 +24,16 @@ sourceSets {
     }
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
+
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+
 }
 
 compose.desktop {

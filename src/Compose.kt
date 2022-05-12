@@ -1,8 +1,8 @@
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.mouseClickable
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,15 +17,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 
 
+
+
 @OptIn(ExperimentalFoundationApi::class)
 fun main() = application {
     var isOpen by remember { mutableStateOf(false) }
     var isChoosing by remember { mutableStateOf(true) }
     var isAskingForClose by remember { mutableStateOf(false) }
-    var gridWidth by remember { mutableStateOf(20) }
-    var gridHeight by remember { mutableStateOf(30) }
+    var width by remember { mutableStateOf(20) }
+    var height by remember { mutableStateOf(30) }
     var mines by remember { mutableStateOf(8) }
-    var grid by remember { mutableStateOf(Grid(0, 0, emptySet())) }
+    var grid by remember { mutableStateOf(Grid(0, 0, 0)) }
+//    var game by remember { mutableStateOf(Game(0, 0, 0)) }
+//    var field by remember { mutableStateOf(mutableListOf<MutableList<MutableState<CellState>>>()) }
+
+    val numberColors = listOf(
+        Color.White,
+        Color.Blue,
+        Color.Green,
+        Color.Red,
+        Color(50, 50, 200),
+        Color.Magenta,
+        Color.Cyan,
+        Color.Black,
+        Color.LightGray,
+        Color.Black
+    )
 
     if (isChoosing) Window(
         onCloseRequest = ::exitApplication,
@@ -33,13 +50,17 @@ fun main() = application {
         state = rememberWindowState(width = 300.dp, height = 300.dp)
     ) {
         Column {
-            gridWidth = numberSelection(gridWidth, "Height")
-            gridHeight = numberSelection(gridHeight, "Width")
+            width = numberSelection(width, "Height")
+            height = numberSelection(height, "Width")
             mines = numberSelection(mines, "Mines")
             Button(onClick = {
                 isOpen = true
                 isChoosing = false
-                grid = Grid(gridWidth, gridHeight, generateMines(mines, gridWidth, gridHeight))
+                grid = Grid(width, height, mines)
+//                game = Game(width, height, mines)
+//                grid = Grid(gridWidth, gridHeight, generateMines(mines, gridWidth, gridHeight))
+//                grid = game.grid
+//                game.grid.field.forEach { line -> field += line.map { cell -> mutableStateOf(cell) } }
             }, modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally)) { Text("Start") }
         }
     }
@@ -48,13 +69,11 @@ fun main() = application {
 
         Window(
             onCloseRequest = { isAskingForClose = true },
-            title = "Compose for Desktop",
-            state = rememberWindowState(width = (26 * gridHeight).dp, height = (25 * gridWidth + 80).dp),
-            resizable = false
+            title = "Minesweeper for Desktop",
+            state = rememberWindowState(width = 500.dp, height = 500.dp)
         ) {
-
-            MaterialTheme {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            //MaterialTheme {
+            Column {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -67,64 +86,67 @@ fun main() = application {
                             fontWeight = FontWeight.Bold)
                         }
                     }
-                    LazyColumn() {
-                        items(gridWidth) { x ->
-                            LazyRow {
-                                items(gridHeight) { y ->
-                                    val cellState = grid.field[x][y]
-                                    val numberColors = listOf(
-                                        Color.White,
-                                        Color.Blue,
-                                        Color.Green,
-                                        Color.Red,
-                                        Color(50, 50, 200),
-                                        Color.Magenta,
-                                        Color.Cyan,
-                                        Color.Yellow,
-                                        Color.LightGray,
-                                        Color.Black
-                                    )
-                                    val value = grid.getValue(x, y)
-                                    val isVisible = cellState == CellState.VISIBLE
-                                    println("$x:$y is $value, $cellState")
+                    val vState = rememberLazyListState()
+                    val hState = rememberScrollState()
+                    Box(){
+                        LazyColumn(state = vState) {
+                            items(grid.width) { x ->
+                                Row(modifier = Modifier.horizontalScroll(hState)) {
+                                    (0 until grid.height).forEach { y ->
+                                        val cellState = grid.field[x][y]
+                                        val value = grid.getValue(x, y)
+                                        val isVisible = cellState == CellState.VISIBLE
+                                        println("$x:$y is $value, $cellState")
 
-                                    Surface(
-                                        modifier = Modifier.size(25.dp).mouseClickable(onClick = {
-                                            when {
-                                                buttons.isPrimaryPressed -> grid = grid.action(x, y)
-                                                buttons.isSecondaryPressed -> grid = grid.actionSecondary(x, y)
+                                        Surface(
+                                            modifier = Modifier.size(25.dp).mouseClickable(onClick = {
+                                                when {
+                                                    buttons.isPrimaryPressed -> grid = grid.action(x, y)
+                                                    buttons.isSecondaryPressed -> grid = grid.actionSecondary(x, y)
+                                                }
+                                            }),
+                                            color = if (isVisible) if (value in 0..8) Color.White else Color.Red else Color.DarkGray,
+                                            border = ButtonDefaults.outlinedBorder,
+                                            shape = RectangleShape
+                                        ) {
+                                            when (cellState) {
+                                                CellState.VISIBLE -> {
+                                                    if (value in 0..8)
+                                                        Text(
+                                                            text = "$value",
+                                                            color = numberColors[value],
+                                                            modifier = Modifier.padding(7.dp, 4.dp)
+                                                        )
+                                                    else
+                                                        Text(
+                                                            "💣",
+                                                            color = Color.Black,
+                                                            modifier = Modifier.padding(2.dp, 0.dp)
+                                                        )
+                                                }
+                                                CellState.FLAG -> Text(
+                                                    "⚑",
+                                                    color = Color.Red,
+                                                    modifier = Modifier.padding(7.dp, 2.dp)
+                                                )
+                                                else -> Text("")
                                             }
-                                        }),
-                                        color = if (isVisible) Color.White else Color.DarkGray,
-                                        border = ButtonDefaults.outlinedBorder,
-                                        shape = RectangleShape
-                                    ) {
-                                        val modifier = Modifier.padding(7.dp, 4.dp)
-                                        when (cellState) {
-                                            CellState.VISIBLE -> {
-                                                if (value in 0..8)
-                                                    Text("$value", color = numberColors[value], modifier = modifier)
-                                                else
-                                                    Text(
-                                                        "💣",
-                                                        color = Color.Black,
-                                                        modifier = Modifier.padding(2.dp, 0.dp)
-                                                    )
-                                            }
-                                            CellState.FLAG -> Text(
-                                                "⚑",
-                                                color = Color.Red,
-                                                modifier = Modifier.padding(7.dp, 2.dp)
-                                            )
-                                            else -> Text("")
                                         }
                                     }
                                 }
                             }
                         }
+                        VerticalScrollbar(
+                            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                            adapter = rememberScrollbarAdapter(vState)
+                        )
+                        HorizontalScrollbar(
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                            adapter = rememberScrollbarAdapter(hState)
+                        )
                     }
                 }
-            }
+            //}
 
             if (isAskingForClose) {
                 Dialog(
@@ -163,7 +185,7 @@ fun main() = application {
                         )
                         Text(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = "$gridWidth X $gridHeight - ${grid.minesLeft()}/$mines mines left"
+                            text = "$width X $height - ${grid.minesLeft()}/$mines mines left"
                         )
                         Button(
                             modifier = Modifier.fillMaxWidth(),
