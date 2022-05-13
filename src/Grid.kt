@@ -1,11 +1,16 @@
 import kotlin.random.Random
 
-class Grid(
-    val width: Int, val height: Int, private val mines: Int,
-    val field: MutableList<MutableList<CellState>> = 0.rangeTo(width).map { 0.rangeTo(height).map { CellState.HIDDEN }.toMutableList() }.toMutableList()
-) {
+class Grid(val width: Int, val height: Int, private val mines: Int) {
+    var field: List<MutableList<CellState>> = 0.rangeTo(width).map { 0.rangeTo(height).map { CellState.HIDDEN }.toMutableList() }
     var minesSet: Set<Cell> = setOf(Cell(0, 0))
     var isFirstAction = true
+
+    constructor(width: Int, height: Int, mines: Int, field: List<MutableList<CellState>>, minesSet: Set<Cell>, isFirstAction: Boolean)
+            : this(width, height, mines) {
+        this.field = field
+        this.minesSet = minesSet
+        this.isFirstAction = isFirstAction
+            }
 
     fun action(x: Int, y: Int): Grid {
         if (isFirstAction) {
@@ -15,19 +20,21 @@ class Grid(
             minesSet = localMines
         }
         if (field[x][y] == CellState.HIDDEN) {
-            this.field[x][y] = CellState.VISIBLE
-            if (getValue(x, y) == 0) return actionArea(x, y)
+            var localGrid = Grid(width, height, mines, field, minesSet, isFirstAction)
+            localGrid.field[x][y] = CellState.VISIBLE
             println("action $x:$y is ${this.field[x][y]}")
-            return this
+            if (getValue(x, y) == 0) localGrid = actionArea(x, y)
+            return localGrid
         }
         return this
     }
 
     fun actionSecondary(x: Int, y: Int): Grid {
         if (field[x][y] != CellState.VISIBLE) {
-            this.field[x][y] = this.field[x][y].actionSecondary()
+            val localGrid = Grid(width, height, mines, field, minesSet, isFirstAction)
+            localGrid.field[x][y] = localGrid.field[x][y].actionSecondary()
             println("actionSecondary -> $x:$y is now ${this.field[x][y]}")
-            return this
+            return localGrid
         }
         if (field[x][y] == CellState.VISIBLE && getValue(x, y) != 0 &&
             getValue(x, y) == (x - 1).rangeTo(x + 1).sumOf { i ->
