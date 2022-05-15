@@ -69,7 +69,7 @@ fun main() = application {
         Window(
             onCloseRequest = { isAskingForClose = true },
             title = "Minesweeper for Desktop",
-            state = rememberWindowState(width = 500.dp, height = 500.dp)
+            state = rememberWindowState(width = (height * 30).dp, height = ((width + 1) * 30).dp)
         ) {
             Column {
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -86,8 +86,8 @@ fun main() = application {
                     }
                     val vState = rememberLazyListState()
                     val hState = rememberScrollState()
-                    Box{
-                        LazyColumn(state = vState) {
+                    Box(modifier = Modifier.fillMaxSize()){
+                        LazyColumn(state = vState, modifier = Modifier.align(Alignment.Center)) {
                             items(grid.width) { x ->
                                 Row(modifier = Modifier.horizontalScroll(hState)) {
                                     (0 until grid.height).forEach { y ->

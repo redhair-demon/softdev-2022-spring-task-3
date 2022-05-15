@@ -21,7 +21,7 @@ class Grid(val width: Int, val height: Int, private val mines: Int) {
         }
         if (field[x][y] == CellState.HIDDEN) {
             var localGrid = Grid(width, height, mines, field, minesSet, isFirstAction)
-            localGrid.field[x][y] = CellState.VISIBLE
+            localGrid.field[x][y] = localGrid.field[x][y].action()
             println("action $x:$y is ${this.field[x][y]}")
             if (getValue(x, y) == 0) localGrid = actionArea(x, y)
             return localGrid
