@@ -36,12 +36,7 @@ class Grid(val width: Int, val height: Int, private val mines: Int) {
             println("actionSecondary -> $x:$y is now ${this.field[x][y]}")
             return localGrid
         }
-        if (field[x][y] == CellState.VISIBLE && getValue(x, y) != 0 &&
-            getValue(x, y) == (x - 1).rangeTo(x + 1).sumOf { i ->
-                (y - 1).rangeTo(y + 1).count { j ->
-                    if (i in 0..width && j in 0..height) field[i][j] == CellState.FLAG else false
-                }
-            }) return actionArea(x, y)
+        if (field[x][y] == CellState.VISIBLE && getValue(x, y) != 0 && getValue(x, y) == getFlags(x, y)) return actionArea(x, y)
         return this
     }
 
@@ -65,7 +60,92 @@ class Grid(val width: Int, val height: Int, private val mines: Int) {
         else (x - 1).rangeTo(x + 1).sumOf { i -> (y - 1).rangeTo(y + 1).count { j -> minesSet.contains(Cell(i, j)) } }
     }
 
+    private fun getFlags(x: Int, y: Int): Int {
+        return (x - 1).rangeTo(x + 1).sumOf { i ->
+            (y - 1).rangeTo(y + 1).count { j ->
+                if (i in 0..width && j in 0..height) field[i][j] == CellState.FLAG else false
+            } }
+    }
+
     fun minesLeft(): Int = minesSet.size - field.sumOf { line -> line.count { it == CellState.FLAG } }
+
+    private fun getHidEdge(): Set<Cell> {
+        val edge = emptySet<Cell>().toMutableSet()
+        for (x in 0 until width)
+            for (y in 0 until height)
+                if (field[x][y] != CellState.VISIBLE &&
+                    (x - 1).rangeTo(x + 1).any { i -> (y - 1).rangeTo(y + 1).any { j -> (i in 0 until width)&&(j in 0 until height)&&(field[i][j] == CellState.VISIBLE) } })
+                    edge += Cell(x, y)
+        return edge
+    }
+
+    private fun getVisEdge(): Set<Cell> {
+        val edge = emptySet<Cell>().toMutableSet()
+        for (x in 0 until width)
+            for (y in 0 until height)
+                if (field[x][y] == CellState.VISIBLE && getValue(x, y) != 0) edge += Cell(x, y)
+        return edge
+    }
+
+    fun isSolvable(): Boolean {
+        val hidEdge = getHidEdge()
+        val visEdge = getVisEdge()
+        var hidState: Map<Cell, Boolean?> = hidEdge.associateWith { null }
+        val solves = emptySet<Map<Cell, Boolean?>>().toMutableSet()
+        if (hidEdge.all { it in minesSet && field[it.x][it.y] == CellState.FLAG }) return false
+        hidState = solve(visEdge, hidState)
+        if (true in hidState.values || false in hidState.values) return true
+        for (cell in hidEdge) {
+            var localState = hidState.toMutableMap()
+            localState[cell] = true
+            localState = solve(visEdge, localState).toMutableMap()
+            solves += localState
+        }
+
+        for (solve in solves) {
+            for (cell in solve.keys) {
+                var isCellSolved = true
+                for (other in solves - solve) {
+                    isCellSolved = solve[cell] == other[cell] && solve[cell] != null && isCellSolved
+                }
+                if (isCellSolved) return true
+            }
+        }
+        return false
+    }
+
+    private fun solve(visEdge: Set<Cell>, hidState: Map<Cell, Boolean?>): Map<Cell, Boolean?> {
+        val localState = hidState.toMutableMap()
+        for (cell in visEdge) {
+            val emptyCells = (cell.x - 1).rangeTo(cell.x + 1).sumOf { i -> (cell.y - 1).rangeTo(cell.y + 1).count { j -> (i in 0..width && j in 0..height) && (field[i][j] == CellState.HIDDEN || hidState[Cell(i, j)] == false) } }
+            if (getValue(cell.x, cell.y) == getFlags(cell.x, cell.y) || getValue(cell.x, cell.y) == emptyCells) {
+                if (getValue(cell.x, cell.y) == emptyCells) {
+                    (cell.x - 1).rangeTo(cell.x + 1).forEach { i -> (cell.y - 1).rangeTo(cell.y + 1).forEach { j ->
+                        if (Cell(i, j) in hidState.keys && hidState[Cell(i, j)] == null) {
+                            localState[Cell(i, j)] = true
+                        } } }
+                }
+                (cell.x - 1).rangeTo(cell.x + 1).forEach { i -> (cell.y - 1).rangeTo(cell.y + 1).forEach { j ->
+                    if (Cell(i, j) in hidState.keys && hidState[Cell(i, j)] == null) {
+                        localState[Cell(i, j)] = false
+                    } } }
+            }
+        }
+        println("solve = $localState")
+        return localState
+    }
+
+    fun gameOver(): Grid {
+        var localGrid = this
+        0.rangeTo(width).forEach { i -> 0.rangeTo(height).forEach { j -> localGrid = localGrid.action(i, j) } }
+        return localGrid
+    }
+
+    fun openCell(): Grid {
+        var cell = Cell(Random.nextInt(width), Random.nextInt(height))
+        while (cell in minesSet || field[cell.x][cell.y] == CellState.VISIBLE) cell = Cell(Random.nextInt(width), Random.nextInt(height))
+        return action(cell.x, cell.y)
+    }
 
     private fun generateMines(): Set<Cell> {
         val result = mutableSetOf<Cell>()

@@ -166,16 +166,30 @@ fun main() = application {
                         isOpen = false
                         isChoosing = true
                     })
+                    Item("Is Not Solvable", onClick = {
+                        grid = if (grid.isSolvable()) {
+                            grid.gameOver()
+                        } else {
+                            grid.openCell()
+                        }
+                    }, enabled = !grid.isFirstAction)
+                    Item("End Game", onClick = {
+                        grid = grid.gameOver()
+                    })
                 }
                 Menu("Saves") {
                     Item("Clear Records") {
                         File("records.txt").writeText("")
+                    }
+                    Item("See Records") {
+                        Runtime.getRuntime().exec("cmd /c start records.txt")
                     }
                 }
             }
         }
 
         if (grid.isGameOver()) {
+            grid = grid.gameOver()
             timer.cancel()
             Dialog(
                 onCloseRequest = { isOpen = false },
