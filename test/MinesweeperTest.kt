@@ -113,40 +113,32 @@ class MinesweeperTest {
     fun isSolvableTest() {
         var grid = testGrid2
         grid.minesSet = minesSet2
-        var flags = listOf(7, 8, 15, 26, 30, 31)
+        val flags = listOf(7, 8, 15, 26, 30, 31)
         flags.forEach { grid.field[it % 6][it / 6] = CellState.FLAG }
         var visible = listOf(0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 18, 19, 24, 25)
         visible.forEach { grid.field[it % 6][it / 6] = CellState.VISIBLE }
         assertEquals(false, grid.isSolvable())
 
-        println("---------------------Test 3---------------------")
         grid = testGrid3
         grid.minesSet = minesSet3
-        flags = listOf()
         visible = listOf(5, 8, 9, 12, 13, 14)
         visible.forEach { grid.field[it % 4][it / 4] = CellState.VISIBLE }
         assertEquals(true, grid.isSolvable())
 
-        println("---------------------Test 4---------------------")
         grid = testGrid4
         grid.minesSet = minesSet4
-        flags = listOf()
         visible = listOf(4, 5, 6, 7, 8, 9, 10, 11)
         visible.forEach { grid.field[it % 4][it / 4] = CellState.VISIBLE }
         assertEquals(true, grid.isSolvable())
 
-        println("---------------------Test 5---------------------")
         grid = testGrid5
         grid.minesSet = minesSet5
-        flags = listOf()
         visible = listOf(5, 6, 7, 9, 10, 11)
         visible.forEach { grid.field[it % 5][it / 5] = CellState.VISIBLE }
         assertEquals(true, grid.isSolvable())
 
-        println("---------------------Test 6---------------------")
         grid = testGrid6
         grid.minesSet = minesSet6
-        flags = listOf()
         visible = listOf(5, 6, 7, 8, 9, 10, 11, 12, 13,14)
         visible.forEach { grid.field[it % 5][it / 5] = CellState.VISIBLE }
         assertEquals(true, grid.isSolvable())
