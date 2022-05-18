@@ -38,6 +38,6 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "ComposeKt"
     }
 }

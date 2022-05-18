@@ -20,7 +20,6 @@ import java.util.*
 import kotlin.concurrent.timerTask
 
 
-@OptIn(ExperimentalFoundationApi::class)
 fun main() = application {
     var isOpen by remember { mutableStateOf(false) }
     var isChoosing by remember { mutableStateOf(true) }
@@ -28,7 +27,7 @@ fun main() = application {
     var width by remember { mutableStateOf(10) }
     var height by remember { mutableStateOf(10) }
     var mines by remember { mutableStateOf(10) }
-    var grid by remember { mutableStateOf(Grid(0, 0, 0)) }
+    val grid = remember { mutableStateOf(Grid(0, 0, 0)) }
     var seconds by remember { mutableStateOf(0) }
 
     val timer = Timer()
@@ -57,9 +56,13 @@ fun main() = application {
                 if (width * height > mines) {
                     isOpen = true
                     isChoosing = false
-                    grid = Grid(width, height, mines)
+                    grid.value = Grid(width, height, mines)
                     seconds = 0
-                    timer.scheduleAtFixedRate(timerTask { if(!grid.isFirstAction && !grid.isGameOver()) seconds++ }, 0, 100)
+                    timer.scheduleAtFixedRate(
+                        timerTask { if(!grid.value.isFirstAction && !grid.value.isGameOver()) seconds++ },
+                        0,
+                        100
+                    )
                 }
             }, modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally)) { Text("Start") }
         }
@@ -79,7 +82,7 @@ fun main() = application {
                             border = ButtonDefaults.outlinedBorder,
                             shape = RectangleShape
                         ) { Text(
-                            "${grid.minesLeft()}    ${seconds / 10.0}",
+                            "${grid.value.minesLeft()}    ${seconds / 10.0}",
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.Bold)
                         }
@@ -88,50 +91,10 @@ fun main() = application {
                     val hState = rememberScrollState()
                     Box(modifier = Modifier.fillMaxSize()){
                         LazyColumn(state = vState, modifier = Modifier.align(Alignment.Center)) {
-                            items(grid.width) { x ->
+                            items(width) { x ->
                                 Row(modifier = Modifier.horizontalScroll(hState)) {
-                                    (0 until grid.height).forEach { y ->
-                                        val cellState = grid.field[x][y]
-                                        val value = grid.getValue(x, y)
-                                        val isVisible = cellState == CellState.VISIBLE
-                                        println("$x:$y is $value, $cellState")
-
-                                        Surface(
-                                            modifier = Modifier.size(25.dp).mouseClickable(onClick = {
-                                                if (!grid.isGameOver()) {
-                                                    when {
-                                                        buttons.isPrimaryPressed -> grid = grid.action(x, y)
-                                                        buttons.isSecondaryPressed -> grid = grid.actionSecondary(x, y)
-                                                    }
-                                                }
-                                            }),
-                                            color = if (isVisible) if (value in 0..8) Color.White else Color.Red else Color.DarkGray,
-                                            border = ButtonDefaults.outlinedBorder,
-                                            shape = RectangleShape
-                                        ) {
-                                            when (cellState) {
-                                                CellState.VISIBLE -> {
-                                                    if (value in 0..8)
-                                                        Text(
-                                                            text = "$value",
-                                                            color = numberColors[value],
-                                                            modifier = Modifier.padding(7.dp, 4.dp)
-                                                        )
-                                                    else
-                                                        Text(
-                                                            "💣",
-                                                            color = Color.Black,
-                                                            modifier = Modifier.padding(2.dp, 0.dp)
-                                                        )
-                                                }
-                                                CellState.FLAG -> Text(
-                                                    "⚑",
-                                                    color = Color.Red,
-                                                    modifier = Modifier.padding(7.dp, 2.dp)
-                                                )
-                                                else -> Text("")
-                                            }
-                                        }
+                                    (0 until height).forEach { y ->
+                                        CellSurface(grid, x, y, numberColors)
                                     }
                                 }
                             }
@@ -147,19 +110,6 @@ fun main() = application {
                     }
                 }
 
-            if (isAskingForClose) {
-                Dialog(
-                    onCloseRequest = { isAskingForClose = false },
-                    title = "Close the window?",
-                    state = rememberDialogState(width = 200.dp, height = 100.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
-                        Button(onClick = { isOpen = false }) { Text("Yes") }
-                        Spacer(modifier = Modifier.fillMaxSize(0.2f))
-                        Button(onClick = { isAskingForClose = false }) { Text("No") }
-                    }
-                }
-            }
             MenuBar {
                 Menu("Game") {
                     Item("New Game", onClick = {
@@ -167,14 +117,14 @@ fun main() = application {
                         isChoosing = true
                     })
                     Item("Is Not Solvable", onClick = {
-                        grid = if (grid.isSolvable()) {
-                            grid.gameOver()
+                        grid.value = if (grid.value.isSolvable()) {
+                            grid.value.gameOver()
                         } else {
-                            grid.openCell()
+                            grid.value.openCell()
                         }
-                    }, enabled = !grid.isFirstAction)
+                    }, enabled = !grid.value.isFirstAction)
                     Item("End Game", onClick = {
-                        grid = grid.gameOver()
+                        grid.value = grid.value.gameOver()
                     })
                 }
                 Menu("Saves") {
@@ -188,8 +138,22 @@ fun main() = application {
             }
         }
 
-        if (grid.isGameOver()) {
-            grid = grid.gameOver()
+        if (isAskingForClose) {
+            Dialog(
+                onCloseRequest = { isAskingForClose = false },
+                title = "Close the window?",
+                state = rememberDialogState(width = 200.dp, height = 100.dp)
+            ) {
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = { isOpen = false }) { Text("Yes") }
+                    Spacer(modifier = Modifier.fillMaxSize(0.2f))
+                    Button(onClick = { isAskingForClose = false }) { Text("No") }
+                }
+            }
+        }
+
+        if (grid.value.isGameOver()) {
+            grid.value = grid.value.gameOver()
             timer.cancel()
             Dialog(
                 onCloseRequest = { isOpen = false },
@@ -201,14 +165,15 @@ fun main() = application {
                     Column(modifier = Modifier.fillMaxSize()) {
                         Text(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = if (grid.isWin()) {
-                                File("records.txt").appendText("FIELD ($width * $height), MINES ($mines), TIME (${seconds / 10.0}), DATE (${Date(System.currentTimeMillis())})${System.lineSeparator()}")
+                            text = if (grid.value.isWin()) {
+                                File("records.txt")
+                                    .appendText("FIELD ($width * $height), MINES ($mines), TIME (${seconds / 10.0}), DATE (${Date(System.currentTimeMillis())})${System.lineSeparator()}")
                                 "Winner!"
                             } else "Loser!"
                         )
                         Text(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = "$width X $height - ${grid.minesLeft()}/$mines mines left - time: ${seconds / 10.0}"
+                            text = "$width X $height - ${grid.value.minesLeft()}/$mines mines left - time: ${seconds / 10.0}"
                         )
                         Button(
                             modifier = Modifier.fillMaxWidth(),
@@ -247,4 +212,54 @@ fun numberSelection(number: Int, text: String): Int {
         ) { Text("+") }
     }
     return count
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CellSurface(grid: MutableState<Grid>, x: Int, y: Int, numberColors: List<Color>) {
+    val cellState = grid.value.field[x][y]
+    val value = grid.value.getValue(x, y)
+    val isVisible = cellState == CellState.VISIBLE
+
+    Surface(
+        modifier = Modifier.size(25.dp).mouseClickable(onClick = {
+            if (!grid.value.isGameOver()) {
+                when {
+                    buttons.isPrimaryPressed -> grid.value = grid.value.action(x, y)
+                    buttons.isSecondaryPressed -> grid.value = grid.value.actionSecondary(x, y)
+                }
+            }
+        }),
+        color = if (isVisible) if (value in 0..8) Color.White else Color.Red else Color.DarkGray,
+        border = ButtonDefaults.outlinedBorder,
+        shape = RectangleShape
+    ) {
+        CellText(cellState, value, numberColors)
+    }
+}
+
+@Composable
+fun CellText(cellState: CellState, value: Int, numberColors: List<Color>) {
+    when (cellState) {
+        CellState.VISIBLE -> {
+            if (value in 0..8)
+                Text(
+                    text = "$value",
+                    color = numberColors[value],
+                    modifier = Modifier.padding(7.dp, 4.dp)
+                )
+            else
+                Text(
+                    "💣",
+                    color = Color.Black,
+                    modifier = Modifier.padding(2.dp, 0.dp)
+                )
+        }
+        CellState.FLAG -> Text(
+            "⚑",
+            color = Color.Red,
+            modifier = Modifier.padding(7.dp, 2.dp)
+        )
+        else -> Text("")
+    }
 }
