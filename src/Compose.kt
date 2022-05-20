@@ -10,20 +10,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.*
 import java.io.File
 import java.util.*
 import kotlin.concurrent.timerTask
 
-
+val fontFamily = FontFamily.Monospace
 fun main() = application {
     var isOpen by remember { mutableStateOf(false) }
     var isChoosing by remember { mutableStateOf(true) }
     var isAskingForClose by remember { mutableStateOf(false) }
+    var isShowingRecords by remember { mutableStateOf(false) }
     var width by remember { mutableStateOf(10) }
     var height by remember { mutableStateOf(10) }
     var mines by remember { mutableStateOf(10) }
@@ -31,10 +34,11 @@ fun main() = application {
     var seconds by remember { mutableStateOf(0) }
 
     val timer = Timer()
+    var timerTask = timerTask {}
     val numberColors = listOf(
         Color.White,
         Color.Blue,
-        Color.Green,
+        Color(0, 200, 0),
         Color.Red,
         Color(50, 50, 200),
         Color.Magenta,
@@ -43,12 +47,16 @@ fun main() = application {
         Color.LightGray
     )
 
+    /* Options Window */
     if (isChoosing) Window(
         onCloseRequest = ::exitApplication,
-        title = "Choose the difficult",
-        state = rememberWindowState(width = 300.dp, height = 300.dp)
+        title = "Game Options",
+        state = rememberWindowState(width = 300.dp, height = 350.dp)
     ) {
-        Column {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Surface(modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp)) {
+                Text("Welcome to Minesweeper", fontSize = 20.sp, fontFamily = fontFamily)
+            }
             width = numberSelection(width, "Height")
             height = numberSelection(height, "Width")
             mines = numberSelection(mines, "Mines")
@@ -58,13 +66,11 @@ fun main() = application {
                     isChoosing = false
                     grid.value = Grid(width, height, mines)
                     seconds = 0
-                    timer.scheduleAtFixedRate(
-                        timerTask { if(!grid.value.isFirstAction && !grid.value.isGameOver()) seconds++ },
-                        0,
-                        100
-                    )
+                    timerTask = timerTask { if(!grid.value.isFirstAction && !grid.value.isGameOver()) seconds++ }
+                    timer.scheduleAtFixedRate(timerTask, 0, 100)
                 }
-            }, modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally)) { Text("Start") }
+            }, modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally)
+            ) { Text("START", fontFamily = fontFamily) }
         }
     }
 
@@ -82,7 +88,7 @@ fun main() = application {
                             border = ButtonDefaults.outlinedBorder,
                             shape = RectangleShape
                         ) { Text(
-                            "${grid.value.minesLeft()}    ${seconds / 10.0}",
+                            "${if (!grid.value.isFirstAction) grid.value.minesLeft() else mines}    ${seconds / 10.0}",
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.Bold)
                         }
@@ -94,7 +100,7 @@ fun main() = application {
                             items(width) { x ->
                                 Row(modifier = Modifier.horizontalScroll(hState)) {
                                     (0 until height).forEach { y ->
-                                        CellSurface(grid, x, y, numberColors)
+                                        cellSurface(grid, x, y, numberColors)
                                     }
                                 }
                             }
@@ -131,49 +137,39 @@ fun main() = application {
                     Item("Clear Records") {
                         File("records.txt").writeText("")
                     }
-                    Item("See Records") {
-                        Runtime.getRuntime().exec("cmd /c start records.txt")
+                    Item("See Records", enabled = File("records.txt").exists()) {
+                        isShowingRecords = true
                     }
                 }
             }
         }
 
-        if (isAskingForClose) {
-            Dialog(
-                onCloseRequest = { isAskingForClose = false },
-                title = "Close the window?",
-                state = rememberDialogState(width = 200.dp, height = 100.dp)
-            ) {
-                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { isOpen = false }) { Text("Yes") }
-                    Spacer(modifier = Modifier.fillMaxSize(0.2f))
-                    Button(onClick = { isAskingForClose = false }) { Text("No") }
-                }
-            }
-        }
-
+        /* Game Over Window */
         if (grid.value.isGameOver()) {
             grid.value = grid.value.gameOver()
+            timerTask.cancel()
             timer.cancel()
             Dialog(
                 onCloseRequest = { isOpen = false },
                 title = "Game Over",
-                state = rememberDialogState(size = DpSize(300.dp, 150.dp)),
+                state = rememberDialogState(size = DpSize(200.dp, 200.dp)),
                 resizable = false
             ) {
                 MaterialTheme {
                     Column(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp),
                             text = if (grid.value.isWin()) {
-                                File("records.txt")
-                                    .appendText("FIELD ($width * $height), MINES ($mines), TIME (${seconds / 10.0}), DATE (${Date(System.currentTimeMillis())})${System.lineSeparator()}")
+                                writeRecord(width, height, mines, seconds)
                                 "Winner!"
-                            } else "Loser!"
+                            } else "Loser!",
+                            fontFamily = fontFamily,
+                            fontSize = 20.sp
                         )
                         Text(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = "$width X $height - ${grid.value.minesLeft()}/$mines mines left - time: ${seconds / 10.0}"
+                            text = "Field: $height * $width \nMines left: ${grid.value.minesLeft()}/$mines\nTime: ${seconds / 10.0}",
+                            fontFamily = fontFamily
                         )
                         Button(
                             modifier = Modifier.fillMaxWidth(),
@@ -186,7 +182,58 @@ fun main() = application {
                 }
             }
         }
+
     }
+    /* Record List */
+    if (isShowingRecords) {
+        Window(
+            onCloseRequest = { isShowingRecords = false },
+            title = "Records",
+            state = rememberWindowState(width = 300.dp, height = 400.dp)
+        ) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    "Your Best Scores",
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp),
+                    fontFamily = fontFamily,
+                    fontSize = 20.sp
+                )
+                for (line in File("records.txt").readLines()) {
+                    Surface(border = ButtonDefaults.outlinedBorder) {
+                        Text(line)
+                    }
+                }
+            }
+        }
+    }
+
+    /* Close Confirmation */
+    if (isAskingForClose) {
+        Dialog(
+            onCloseRequest = { isAskingForClose = false },
+            title = "Close the window?",
+            state = rememberDialogState(width = 200.dp, height = 150.dp)
+        ) {
+            Column {
+                Text("You are going to close the window", fontFamily = fontFamily, modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp))
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = {
+                        isOpen = false
+                        isAskingForClose = false
+                    }) { Text("Yes", fontFamily = fontFamily) }
+                    Spacer(modifier = Modifier.fillMaxSize(0.2f))
+                    Button(onClick = { isAskingForClose = false }) { Text("No", fontFamily = fontFamily) }
+                }
+            }
+        }
+    }
+
+}
+
+fun writeRecord(width: Int, height: Int, mines: Int, seconds: Int) {
+    File("records.txt").appendText("Field ($width*$height)," +
+            " Mines ($mines), Time (${seconds / 10.0})," +
+            " Date (${Date(System.currentTimeMillis())})${System.lineSeparator()}")
 }
 
 @Composable
@@ -194,20 +241,22 @@ fun numberSelection(number: Int, text: String): Int {
     var count by remember { mutableStateOf(number) }
     Row {
         Button(
-            onClick = { count-- },
-            modifier = Modifier.size(35.dp),
+            onClick = { if (count > 1) count-- },
+            modifier = Modifier.size(35.dp, 55.dp),
             contentPadding = PaddingValues()
         ) { Text("-") }
         Column(Modifier.weight(1f, true)) {
-            TextField("$count", onValueChange = {count = try {
-                it.toInt()
+            TextField("$count",
+                modifier = Modifier.fillMaxWidth(),
+                onValueChange = {count = try {
+                if (it.toInt() > 0) it.toInt() else count
             } catch (e: NumberFormatException) {count}
             })
             Text(text, Modifier.align((Alignment.CenterHorizontally)))
         }
         Button(
             onClick = { count++ },
-            modifier = Modifier.size(35.dp),
+            modifier = Modifier.size(35.dp, 55.dp),
             contentPadding = PaddingValues()
         ) { Text("+") }
     }
@@ -216,7 +265,7 @@ fun numberSelection(number: Int, text: String): Int {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CellSurface(grid: MutableState<Grid>, x: Int, y: Int, numberColors: List<Color>) {
+fun cellSurface(grid: MutableState<Grid>, x: Int, y: Int, numberColors: List<Color>) {
     val cellState = grid.value.field[x][y]
     val value = grid.value.getValue(x, y)
     val isVisible = cellState == CellState.VISIBLE
@@ -234,18 +283,20 @@ fun CellSurface(grid: MutableState<Grid>, x: Int, y: Int, numberColors: List<Col
         border = ButtonDefaults.outlinedBorder,
         shape = RectangleShape
     ) {
-        CellText(cellState, value, numberColors)
+        cellText(cellState, value, numberColors)
     }
 }
 
 @Composable
-fun CellText(cellState: CellState, value: Int, numberColors: List<Color>) {
+fun cellText(cellState: CellState, value: Int, numberColors: List<Color>) {
     when (cellState) {
         CellState.VISIBLE -> {
             if (value in 0..8)
                 Text(
                     text = "$value",
                     color = numberColors[value],
+                    fontFamily = fontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(7.dp, 4.dp)
                 )
             else

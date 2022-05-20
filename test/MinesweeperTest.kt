@@ -109,6 +109,9 @@ class MinesweeperTest {
 
     private val testGrid6 = Grid(5, 3, 2)
     private val minesSet6 = setOf(Cell(1, 0), Cell(4, 0))
+
+    private val testGrid7 = Grid(4, 4, 2)
+    private val minesSet7 = setOf(Cell(2, 0), Cell(0, 3))
     @Test
     fun isSolvableTest() {
         var grid = testGrid2
@@ -139,8 +142,14 @@ class MinesweeperTest {
 
         grid = testGrid6
         grid.minesSet = minesSet6
-        visible = listOf(5, 6, 7, 8, 9, 10, 11, 12, 13,14)
+        visible = listOf(5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
         visible.forEach { grid.field[it % 5][it / 5] = CellState.VISIBLE }
         assertEquals(true, grid.isSolvable())
+
+        grid = testGrid7
+        grid.minesSet = minesSet7
+        visible = listOf(5, 6)
+        visible.forEach { grid.field[it % 4][it / 4] = CellState.VISIBLE }
+        assertEquals(false, grid.isSolvable())
     }
 }

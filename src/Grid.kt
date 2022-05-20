@@ -72,7 +72,10 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
         for (x in 0 until width)
             for (y in 0 until height)
                 if (field[x][y] != CellState.VISIBLE &&
-                    (x - 1).rangeTo(x + 1).any { i -> (y - 1).rangeTo(y + 1).any { j -> (i in 0 until width)&&(j in 0 until height)&&(field[i][j] == CellState.VISIBLE) } })
+                    (x - 1).rangeTo(x + 1).any { i ->
+                        (y - 1).rangeTo(y + 1).any { j ->
+                            (i in 0 until width)&&(j in 0 until height)&&(field[i][j] == CellState.VISIBLE)
+                        } })
                     edge += Cell(x, y)
         return edge
     }
@@ -98,12 +101,13 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
             localState[cell] = true
             localState = solve(visEdge, localState).toMutableMap()
             if (visEdge.all { getValue(it.x, it.y) >= getCells(it.x, it.y, localState, true)
-                        && getValue(it.x, it.y) == getCells(it.x, it.y, localState, true) + getCells(it.x, it.y, localState, null) }
-                && localState.values.count { it == true } <= this.mines)
+                        && getValue(it.x, it.y) <= getCells(it.x, it.y, localState, true) + getCells(it.x, it.y, localState, null) }
+                && localState.values.count { it == true } <= this.mines) {
                 solves += localState
+            }
         }
 
-        println(solves)
+//        println(solves)
 
         for (solve in solves) {
             for (cell in solve.keys) {
@@ -111,7 +115,10 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
                 for (other in solves - solve) {
                     isCellSolved = solve[cell] == other[cell] && solve[cell] == false && isCellSolved
                 }
-                if (isCellSolved) return true
+                if (isCellSolved) {
+                    println(cell)
+                    return true
+                }
             }
         }
         return false
@@ -124,7 +131,6 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
                 val emptyCells = (cell.x - 1).rangeTo(cell.x + 1).sumOf { i ->
                     (cell.y - 1).rangeTo(cell.y + 1).count { j -> ((Cell(i, j) in localState.keys) && (localState[Cell(i, j)] == null)) }
                 }
-//                println("${cell.x}, ${cell.y} = ${getValue(cell.x, cell.y)} : $emptyCells")
 
                 if (getValue(cell.x, cell.y) - getCells(cell.x, cell.y, localState, true) == emptyCells) {
                     (cell.x - 1).rangeTo(cell.x + 1).forEach { i ->
