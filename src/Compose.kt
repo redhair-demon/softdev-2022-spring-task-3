@@ -215,7 +215,11 @@ fun main() = application {
             state = rememberDialogState(width = 200.dp, height = 150.dp)
         ) {
             Column {
-                Text("You are going to close the window", fontFamily = fontFamily, modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp))
+                Text(
+                    "You are going to close the window",
+                    fontFamily = fontFamily,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp)
+                )
                 Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
                     Button(onClick = {
                         isOpen = false

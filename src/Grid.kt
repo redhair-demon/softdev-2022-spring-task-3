@@ -101,7 +101,7 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
             localState[cell] = true
             localState = solve(visEdge, localState).toMutableMap()
             if (visEdge.all { getValue(it.x, it.y) >= getCells(it.x, it.y, localState, true)
-                        && getValue(it.x, it.y) <= getCells(it.x, it.y, localState, true) + getCells(it.x, it.y, localState, null) }
+                        && getValue(it.x, it.y) <= getCells(it.x, it.y, localState, true) + getCells(it.x, it.y, localState) }
                 && localState.values.count { it == true } <= this.mines) {
                 solves += localState
             }
@@ -155,7 +155,7 @@ class Grid(private val width: Int, private val height: Int, private val mines: I
         return localState
     }
 
-    private fun getCells(x: Int, y: Int, localState: MutableMap<Cell, Boolean?>, predicate: Boolean?): Int {
+    private fun getCells(x: Int, y: Int, localState: MutableMap<Cell, Boolean?>, predicate: Boolean? = null): Int {
         return (x - 1).rangeTo(x + 1).sumOf { i ->
             (y - 1).rangeTo(y + 1).count { j ->
                 if (Cell(i, j) in localState.keys) localState[Cell(i, j)] == predicate else false
