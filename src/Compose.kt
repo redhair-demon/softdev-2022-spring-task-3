@@ -126,7 +126,7 @@ fun main() = application {
                         grid.value = if (grid.value.isSolvable()) {
                             grid.value.gameOver()
                         } else {
-                            grid.value.openCell()
+                            grid.value.openRandomCell()
                         }
                     }, enabled = !grid.value.isFirstAction)
                     Item("End Game", onClick = {
@@ -278,8 +278,8 @@ fun cellSurface(grid: MutableState<Grid>, x: Int, y: Int, numberColors: List<Col
         modifier = Modifier.size(25.dp).mouseClickable(onClick = {
             if (!grid.value.isGameOver()) {
                 when {
-                    buttons.isPrimaryPressed -> grid.value = grid.value.action(x, y)
-                    buttons.isSecondaryPressed -> grid.value = grid.value.actionSecondary(x, y)
+                    buttons.isPrimaryPressed -> grid.value = grid.value.openCell(x, y)
+                    buttons.isSecondaryPressed -> grid.value = grid.value.setFlag(x, y)
                 }
             }
         }),

@@ -10,7 +10,7 @@ class MinesweeperTest {
     fun actionTest() {
         var grid = testGrid1
         assertEquals(CellState.HIDDEN, grid.field[0][0])
-        grid = grid.action(0, 0)
+        grid = grid.openCell(0, 0)
         assertEquals(CellState.VISIBLE, grid.field[0][0])
     }
 
@@ -18,9 +18,9 @@ class MinesweeperTest {
     fun actionSecondaryTest() {
         var grid = testGrid1
         assertEquals(CellState.HIDDEN, grid.field[0][0])
-        grid = grid.actionSecondary(0, 0)
+        grid = grid.setFlag(0, 0)
         assertEquals(CellState.FLAG, grid.field[0][0])
-        grid = grid.actionSecondary(0, 0)
+        grid = grid.setFlag(0, 0)
         assertEquals(CellState.HIDDEN, grid.field[0][0])
     }
 
@@ -31,7 +31,7 @@ class MinesweeperTest {
         assertEquals(CellState.HIDDEN, grid.field[8][7])
         assertEquals(CellState.HIDDEN, grid.field[7][8])
         assertEquals(CellState.HIDDEN, grid.field[8][8])
-        grid = grid.actionArea(8, 8)
+        grid = grid.openAroundCells(8, 8)
         assertEquals(CellState.VISIBLE, grid.field[7][7])
         assertEquals(CellState.VISIBLE, grid.field[8][7])
         assertEquals(CellState.VISIBLE, grid.field[7][8])
@@ -44,12 +44,12 @@ class MinesweeperTest {
         grid.isFirstAction = false
         grid.minesSet = minesSet1
 
-        grid.actionSecondary(2, 0)
+        grid.setFlag(2, 0)
         assertEquals(false, grid.isWin())
-        grid.actionSecondary(2, 0)
-        minesSet1.forEach { grid = grid.actionSecondary(it.x, it.y) }
+        grid.setFlag(2, 0)
+        minesSet1.forEach { grid = grid.setFlag(it.x, it.y) }
         assertEquals(true, grid.isWin())
-        grid.actionSecondary(0, 0)
+        grid.setFlag(0, 0)
         assertEquals(false, grid.isWin())
     }
 
@@ -60,10 +60,10 @@ class MinesweeperTest {
         grid.minesSet = minesSet1
 
         assertEquals(false, grid.isGameOver())
-        grid = grid.action(1, 1)
+        grid = grid.openCell(1, 1)
         assertEquals(true, grid.isGameOver() || !grid.isWin())
         grid.field[1][1] = CellState.HIDDEN
-        minesSet1.forEach { grid = grid.actionSecondary(it.x, it.y) }
+        minesSet1.forEach { grid = grid.setFlag(it.x, it.y) }
         assertEquals(true, grid.isGameOver())
     }
 
@@ -90,7 +90,7 @@ class MinesweeperTest {
         grid.minesSet = minesSet1
 
         assertEquals(10, grid.minesLeft())
-        grid = grid.actionSecondary(1, 1)
+        grid = grid.setFlag(1, 1)
         assertEquals(9, grid.minesLeft())
     }
 
